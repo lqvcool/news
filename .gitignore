@@ -116,3 +116,20 @@ Thumbs.db
 
 # Test files
 api.txt
+
+# Additional Next.js specific ignores (from remote)
+.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+/coverage
+/out/
+/build
+*.pem
+.pnpm-debug.log*
+.vercel
+*.tsbuildinfo
+next-env.d.ts
