@@ -1,7 +1,14 @@
 import { Resend } from 'resend'
 
-const resend = new Resend(process.env.RESEND_API_KEY)
+let resend: Resend | null = null
 const fromEmail = process.env.FROM_EMAIL || 'noreply@yourdomain.com'
+
+function getResendClient(): Resend | null {
+  if (!resend && process.env.RESEND_API_KEY) {
+    resend = new Resend(process.env.RESEND_API_KEY)
+  }
+  return resend
+}
 
 interface EmailOptions {
   to: string
@@ -12,12 +19,13 @@ interface EmailOptions {
 
 export async function sendEmail(options: EmailOptions): Promise<boolean> {
   try {
-    if (!process.env.RESEND_API_KEY) {
+    const resendClient = getResendClient()
+    if (!resendClient) {
       console.warn('RESEND_API_KEY not configured, skipping email sending')
       return true // 开发环境下跳过邮件发送
     }
 
-    const { data, error } = await resend.emails.send({
+    const { data, error } = await resendClient.emails.send({
       from: fromEmail,
       to: [options.to],
       subject: options.subject,

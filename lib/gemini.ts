@@ -1,8 +1,15 @@
 import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from '@google/generative-ai'
 import { prisma } from './prisma'
 
-// 初始化Gemini
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!)
+// 延迟初始化Gemini
+let genAI: GoogleGenerativeAI | null = null
+
+function getGeminiClient(): GoogleGenerativeAI | null {
+  if (!genAI && process.env.GEMINI_API_KEY) {
+    genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
+  }
+  return genAI
+}
 
 // 安全配置
 const safetySettings = [
@@ -53,13 +60,19 @@ export interface NewsDigest {
 }
 
 export class GeminiProcessor {
-  private model: any
+  private model: any | null = null
 
-  constructor() {
-    this.model = genAI.getGenerativeModel({
-      model: 'gemini-1.5-flash',
-      safetySettings
-    })
+  private getModel(): any | null {
+    if (!this.model) {
+      const client = getGeminiClient()
+      if (client) {
+        this.model = client.getGenerativeModel({
+          model: 'gemini-1.5-flash',
+          safetySettings
+        })
+      }
+    }
+    return this.model
   }
 
   // 处理单条新闻
@@ -100,7 +113,11 @@ export class GeminiProcessor {
 `
 
     try {
-      const result = await this.model.generateContent(prompt)
+      const model = this.getModel()
+      if (!model) {
+        throw new Error('Gemini API not configured')
+      }
+      const result = await model.generateContent(prompt)
       const response = await result.response
       const text = response.text()
 
@@ -183,7 +200,11 @@ ${this.formatArticlesForPrompt(articles)}
 `
 
     try {
-      const result = await this.model.generateContent(prompt)
+      const model = this.getModel()
+      if (!model) {
+        throw new Error('Gemini API not configured')
+      }
+      const result = await model.generateContent(prompt)
       const response = await result.response
       const text = response.text()
 
@@ -235,7 +256,11 @@ ${this.formatArticlesForPrompt(articles)}
 `
 
     try {
-      const result = await this.model.generateContent(prompt)
+      const model = this.getModel()
+      if (!model) {
+        throw new Error('Gemini API not configured')
+      }
+      const result = await model.generateContent(prompt)
       const response = await result.response
       const text = response.text()
 
@@ -338,4 +363,13 @@ ${this.formatArticlesForPrompt(articles)}
 }
 
 // 导出单例实例
-export const geminiProcessor = new GeminiProcessor()
+let geminiProcessorInstance: GeminiProcessor | null = null
+
+export function getGeminiProcessor(): GeminiProcessor {
+  if (!geminiProcessorInstance) {
+    geminiProcessorInstance = new GeminiProcessor()
+  }
+  return geminiProcessorInstance
+}
+
+export const geminiProcessor = getGeminiProcessor()
