@@ -36,15 +36,21 @@ export async function POST(request: NextRequest) {
       emailToken
     })
 
-    // 发送验证邮件
-    const emailSent = await sendVerificationEmail(
-      user.email,
-      user.name || '用户',
-      emailToken
-    )
+    // 发送验证邮件 (生产环境可选)
+    let emailSent = false
+    if (process.env.NODE_ENV === 'development' || process.env.SKIP_EMAIL_VERIFICATION !== 'true') {
+      emailSent = await sendVerificationEmail(
+        user.email,
+        user.name || '用户',
+        emailToken
+      )
 
-    if (!emailSent) {
-      console.warn('验证邮件发送失败，但用户创建成功')
+      if (!emailSent) {
+        console.warn('验证邮件发送失败，但用户创建成功')
+      }
+    } else {
+      console.log('生产环境：跳过邮件验证')
+      emailSent = true
     }
 
     // 生成JWT令牌
@@ -61,6 +67,10 @@ export async function POST(request: NextRequest) {
       // 这里会在后面的用户设置管理中实现
     }
 
+    const message = emailSent && process.env.NODE_ENV !== 'production'
+      ? '注册成功，请查收验证邮件'
+      : '注册成功'
+
     return createSuccessResponse({
       user: {
         id: user.id,
@@ -70,7 +80,7 @@ export async function POST(request: NextRequest) {
       },
       accessToken,
       refreshToken,
-      message: '注册成功，请查收验证邮件'
+      message
     })
 
   } catch (error) {
