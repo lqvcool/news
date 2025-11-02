@@ -1,0 +1,110 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+// 用户表
+model User {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  passwordHash  String   @map("password_hash")
+  name          String?
+  emailVerified Boolean  @default(false) @map("email_verified")
+  emailToken    String?  @map("email_token")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  // 关联关系
+  settings      UserSettings?
+  emailLogs     EmailLog[]
+
+  @@map("users")
+}
+
+// 用户设置表
+model UserSettings {
+  id               String   @id @default(cuid())
+  userId           String   @unique @map("user_id")
+  selectedSources  String   @default("") @map("selected_sources") // JSON字符串存储数组
+  pushTime         String   @default("08:00") @map("push_time") // HH:MM格式
+  pushFrequency    String   @default("daily") @map("push_frequency") // daily, weekly, custom
+  emailFormat      String   @default("html") @map("email_format") // html, text
+  keywordsFilter   String   @default("") @map("keywords_filter") // JSON字符串存储数组
+  categoriesFilter String   @default("") @map("categories_filter") // JSON字符串存储数组
+  isActive         Boolean  @default(true) @map("is_active")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  // 关联关系
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_settings")
+}
+
+// 新闻源表
+model NewsSource {
+  id       String  @id @default(cuid())
+  name     String
+  url      String  @unique
+  type     String  // rss, api, scraper
+  category String
+  country  String  @default("CN")
+  active   Boolean @default(true)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // 关联关系
+  articles NewsArticle[]
+
+  @@map("news_sources")
+}
+
+// 新闻文章表
+model NewsArticle {
+  id          String   @id @default(cuid())
+  sourceId    String   @map("source_id")
+  title       String
+  content     String?
+  url         String   @unique
+  author      String?
+  publishedAt DateTime @map("published_at")
+  category    String?
+  tags        String   @default("") // JSON字符串存储数组
+  hash        String   @unique // 用于去重
+  summary     String?  // AI生成的摘要
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // 关联关系
+  source NewsSource @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+
+  @@map("news_articles")
+}
+
+// 邮件记录表
+model EmailLog {
+  id        String    @id @default(cuid())
+  userId    String    @map("user_id")
+  subject   String
+  content   String
+  sentAt    DateTime  @default(now()) @map("sent_at")
+  opened    Boolean   @default(false)
+  clicked   Boolean   @default(false)
+  openedAt  DateTime? @map("opened_at")
+  clickedAt DateTime? @map("clicked_at")
+
+  // 关联关系
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("email_logs")
+}
