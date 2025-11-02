@@ -4,8 +4,9 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
-    "build": "next build --turbopack",
+    "build": "npx prisma generate && next build --turbopack",
     "start": "next start",
+    "postbuild": "npx prisma generate",
     "db:seed": "tsx prisma/seed.ts",
     "db:reset": "npx prisma migrate reset && npm run db:seed",
     "scheduler": "tsx scripts/start-scheduler.ts",
